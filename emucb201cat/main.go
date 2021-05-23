@@ -35,8 +35,8 @@ func main() {
 	)
 
 	if *debug {
-		r = io.TeeReader(r, os.Stdout)
-		w = io.MultiWriter(w, os.Stdout)
+		r = io.TeeReader(dev, os.Stdout)
+		w = io.MultiWriter(dev, os.Stdout)
 	}
 
 	go func() {
@@ -70,7 +70,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		emuc.Encode(w, emuc.Port(port), emuc.NewExtMessage(header, []byte{uint8(payload >> 56), uint8(payload >> 48), uint8(payload >> 40), uint8(payload >> 32), uint8(payload >> 24), uint8(payload >> 16), uint8(payload >> 8), uint8(payload)}))
+		if err := emuc.Encode(w, emuc.Port(port), emuc.NewExtMessage(header, nil)); err != nil {
+			log.Fatal(err)
+		}
+		//[]byte{uint8(payload >> 56), uint8(payload >> 48), uint8(payload >> 40), uint8(payload >> 32), uint8(payload >> 24), uint8(payload >> 16), uint8(payload >> 8), uint8(payload)}
 	}
 
 }

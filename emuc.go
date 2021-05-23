@@ -71,8 +71,8 @@ func Encode(w io.Writer, port Port, msg *CanMsg) error {
 	var b bytes.Buffer
 	binary.Write(&b, binary.BigEndian, port)
 	binary.Write(&b, binary.BigEndian, msg)
-	if b.Len() != 15 {
-		return fmt.Errorf("expected 15 bytes after encoding CanMsg, got %d", b.Len())
+	if b.Len() != 14 {
+		return fmt.Errorf("expected 14 bytes after encoding CanMsg, got %d", b.Len())
 	}
 	return encode(w, '<', b.Bytes())
 }
