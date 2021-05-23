@@ -69,7 +69,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
+		// TODO parse payload and len nicely, or make a good tool for constructing messages
 		if err := emuc.Encode(w, emuc.Port(port), emuc.NewExtMessage(header, nil)); err != nil {
 			log.Fatal(err)
 		}
