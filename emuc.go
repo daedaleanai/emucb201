@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+// A Port represents which of the two (or both) CAN ports a message is received or transmitted on.
 type Port uint8
 
 const (
@@ -32,16 +33,26 @@ func (p Port) String() string {
 	return strconv.Itoa(int(p))
 }
 
+// A CanMsg represents a received or transmitted message over either or both ports.
 type CanMsg struct {
 	Flags  uint8   // bit 0: Ext, bit 1: RTR bit 2:6 DLC (0..8)
 	Header uint32  // CAN address 10 or 29 bit depending on Flags & 1
 	Buf    [8]byte // zero padded
 }
 
-func (msg *CanMsg) IsExt() bool     { return (msg.Flags & 1) != 0 }
-func (msg *CanMsg) IsRTR() bool     { return (msg.Flags & 2) != 0 }
-func (msg *CanMsg) SetRTR()         { msg.Flags |= 2 }
-func (msg *CanMsg) DLC() int        { return int(msg.Flags >> 2) }
+// IsExt is true iff the address is 29 bits
+func (msg *CanMsg) IsExt() bool { return (msg.Flags & 1) != 0 }
+
+// IsRTR indicates if the RTR bit is set.  nobody uses this anymore.
+func (msg *CanMsg) IsRTR() bool { return (msg.Flags & 2) != 0 }
+
+// SetRTR sets the RTR.  nobody uses this anymore.
+func (msg *CanMsg) SetRTR() { msg.Flags |= 2 }
+
+// DLC is the Data Length Code which should be 0..8 inclusive.
+func (msg *CanMsg) DLC() int { return int(msg.Flags >> 2) }
+
+// Payload is the zero to 8 byte buffer with the CAN message payload.
 func (msg *CanMsg) Payload() []byte { return msg.Buf[:msg.DLC()] }
 
 func (msg *CanMsg) String() string {
@@ -51,22 +62,27 @@ func (msg *CanMsg) String() string {
 	return fmt.Sprintf("%08x:% x", msg.Header, msg.Buf[:msg.DLC()])
 }
 
+// NewMessage creates a new message with a 10 bit (non extended) address.
 func NewMessage(header uint32, payload []byte) *CanMsg {
 	r := &CanMsg{Flags: uint8(len(payload) << 2), Header: header & ((1 << 10) - 1)}
 	copy(r.Buf[:0], payload)
 	return r
 }
 
+// NewExtMessage creates a message with a 29 bit address.
 func NewExtMessage(header uint32, payload []byte) *CanMsg {
 	r := &CanMsg{Flags: uint8(len(payload)<<2) | 1, Header: header & ((1 << 29) - 1)}
 	copy(r.Buf[:0], payload)
 	return r
 }
 
+// SetSpeed writes a message to the device instructing it to set the speed of either or both ports to the given number of kbps.
+// Valid speeds are 50 125 250 500 and 1000
 func SetSpeed(w io.Writer, port Port, kbps int) error {
 	return encode(w, ':', []byte{uint8(port), uint8(kbps >> 8), uint8(kbps)})
 }
 
+// Encode writes a CAN message to the device for transmission on either or both ports
 func Encode(w io.Writer, port Port, msg *CanMsg) error {
 	var b bytes.Buffer
 	binary.Write(&b, binary.BigEndian, port)
@@ -92,12 +108,14 @@ func encode(w io.Writer, cmdchar byte, b []byte) error {
 	return err
 }
 
+// A Decoder reads consecutive messages from the device.
 type Decoder struct{ *bufio.Reader }
 
 var (
 	ErrNak = errors.New("Set-speed NAK message")
 )
 
+// NewDecoder saves the state around a reader to Decode succesive messages.
 func NewDecoder(r io.Reader) Decoder { return Decoder{bufio.NewReader(r)} }
 
 // Decode returns the next Can Message decoded from the stream.

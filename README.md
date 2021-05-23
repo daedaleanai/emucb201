@@ -24,6 +24,7 @@ The hex digits must be uppercase.
 
 The 4 types of packets are (see below for legend)
 	:ppbbbbcc   				set baudrate         (e.g ":0303E87C")
+
 	;kkcc     					ack/nak set baudrate (either ";019B" or ";009A")
 	=ppffhhhhhhhhxx....xxcc     received can packets
 	<ppffhhhhhhhhxx....xxcc     send can packets
