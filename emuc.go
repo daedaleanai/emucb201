@@ -63,6 +63,10 @@ func NewExtMessage(header uint32, payload []byte) *CanMsg {
 	return r
 }
 
+func SetSpeed(w io.Writer, port Port, kbps int) error {
+	return encode(w, ':', []byte{uint8(port), uint8(kbps >> 8), uint8(kbps)})
+}
+
 func Encode(w io.Writer, port Port, msg *CanMsg) error {
 	var b bytes.Buffer
 	binary.Write(&b, binary.BigEndian, port)
@@ -70,16 +74,20 @@ func Encode(w io.Writer, port Port, msg *CanMsg) error {
 	if b.Len() != 15 {
 		return fmt.Errorf("expected 15 bytes after encoding CanMsg, got %d", b.Len())
 	}
+	return encode(w, '<', b.Bytes())
+}
+
+func encode(w io.Writer, cmdchar byte, b []byte) error {
 
 	var buf bytes.Buffer
-	buf.WriteByte('<')
-	buf.WriteString(strings.ToUpper(hex.EncodeToString(b.Bytes())))
+	buf.WriteByte(cmdchar)
+	buf.WriteString(strings.ToUpper(hex.EncodeToString(b)))
 	chk := uint8(0xff)
-	for _, v := range b.Bytes() {
+	for _, v := range buf.Bytes() {
 		chk += v
 	}
 	buf.WriteString(strings.ToUpper(hex.EncodeToString([]byte{chk})))
-	buf.WriteString("\r'n")
+	buf.WriteString("\r\n")
 	_, err := w.Write(buf.Bytes())
 	return err
 }
@@ -87,7 +95,7 @@ func Encode(w io.Writer, port Port, msg *CanMsg) error {
 type Decoder struct{ *bufio.Reader }
 
 var (
-	ErrNak = errors.New("BaudRate set NAK message")
+	ErrNak = errors.New("Set-speed NAK message")
 )
 
 func NewDecoder(r io.Reader) Decoder { return Decoder{bufio.NewReader(r)} }
@@ -111,7 +119,7 @@ func (d Decoder) Decode() (port Port, msg *CanMsg, err error) {
 	default:
 		return 0, nil, fmt.Errorf("Invalid message %q", line)
 	}
-
+	line = strings.TrimSuffix(line, "\r\n")
 	buf, err := hex.DecodeString(line[1:])
 	if err != nil {
 		return 0, nil, err
@@ -128,7 +136,8 @@ func (d Decoder) Decode() (port Port, msg *CanMsg, err error) {
 		return 0, nil, fmt.Errorf("bad checksum: %v != %v", chk, buf[14])
 	}
 
-	err = binary.Read(bytes.NewReader(buf[1:14]), binary.BigEndian, msg)
-	return Port(buf[0]), msg, err
+	var m CanMsg
+	err = binary.Read(bytes.NewReader(buf[1:14]), binary.BigEndian, &m)
+	return Port(buf[0]), &m, err
 
 }
