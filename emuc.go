@@ -65,14 +65,14 @@ func (msg *CanMsg) String() string {
 // NewMessage creates a new message with a 10 bit (non extended) address.
 func NewMessage(header uint32, payload []byte) *CanMsg {
 	r := &CanMsg{Flags: uint8(len(payload) << 2), Header: header & ((1 << 10) - 1)}
-	copy(r.Buf[:0], payload)
+	copy(r.Buf[:], payload)
 	return r
 }
 
 // NewExtMessage creates a message with a 29 bit address.
 func NewExtMessage(header uint32, payload []byte) *CanMsg {
 	r := &CanMsg{Flags: uint8(len(payload)<<2) | 1, Header: header & ((1 << 29) - 1)}
-	copy(r.Buf[:0], payload)
+	copy(r.Buf[:], payload)
 	return r
 }
 
