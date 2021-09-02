@@ -134,6 +134,8 @@ func (d Decoder) Decode() (port Port, msg *CanMsg, err error) {
 		return 0, nil, nil
 	case line[0] == '=':
 		break
+	case line[0] == '<':
+		break
 	default:
 		return 0, nil, fmt.Errorf("Invalid message %q", line)
 	}
